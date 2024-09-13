@@ -1,53 +1,61 @@
 import os
-from transformers import pipeline, AutoProcessor, AutoModelForPreTraining
+import logging
+from transformers import pipeline, AutoProcessor
 from PIL import Image
 
-# Load model directly
-processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-13b-hf")
-model = AutoModelForPreTraining.from_pretrained("llava-hf/llava-1.5-13b-hf")
+# Set up verbose logging
+logging.basicConfig(level=logging.INFO)
 
-# Initialize the image-to-text pipeline
+# Define the model ID and load the pipeline and processor
 model_id = "llava-hf/llava-1.5-13b-hf"
+logging.info(f"Loading model {model_id}")
 pipe = pipeline("image-to-text", model=model_id)
+processor = AutoProcessor.from_pretrained(model_id)
 
-# Path to the directory containing images
+# Define the image directory and the output directory
 image_dir = './civitai_images'
+output_dir = './civitai_images_descriptions'
+os.makedirs(output_dir, exist_ok=True)
 
-# Ensure the directory exists
-if not os.path.exists(image_dir):
-    raise ValueError(f"Directory {image_dir} does not exist")
+# Get a list of image files in the directory
+image_files = [
+    f for f in os.listdir(image_dir)
+    if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif'))
+]
 
-# Loop through each image in the directory
-for image_file in os.listdir(image_dir):
-    if image_file.endswith(('.png', '.jpg', '.jpeg')):  # Add more extensions if needed
-        # Load the image
-        image_path = os.path.join(image_dir, image_file)
-        image = Image.open(image_path)
+# Process each image
+for image_file in image_files:
+    image_path = os.path.join(image_dir, image_file)
+    logging.info(f"Processing image {image_path}")
+    image = Image.open(image_path)
 
-        # Define a basic conversation template with a prompt
-        conversation = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "Describe this image in detail."},
-                    {"type": "image"},
-                ],
-            },
-        ]
+    # Create a conversation prompt
+    conversation = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Please describe this image in detail."},
+                {"type": "image"},
+            ],
+        },
+    ]
+    prompt = processor.apply_chat_template(
+        conversation, add_generation_prompt=True)
+    logging.info(f"Generated prompt: {prompt}")
 
-        # Generate the prompt using the pipeline
-        # Or use any custom prompt here
-        prompt = {"text": "Describe this image in detail."}
+    # Generate the description using the pipeline
+    outputs = pipe(image, prompt=prompt, generate_kwargs={
+                   "max_new_tokens": 300})
+    logging.info(f"Pipeline outputs: {outputs}")
 
-        # Get the model output
-        outputs = pipe(image, prompt=prompt, generate_kwargs={
-                       "max_new_tokens": 200})
-        generated_text = outputs[0]['generated_text']
+    # Extract the generated text
+    if isinstance(outputs, list):
+        outputs = outputs[0]
+    generated_text = outputs.get("generated_text", "")
 
-        # Save the generated text to a .txt file with the same name as the image
-        output_file = os.path.splitext(image_file)[0] + '.txt'
-        output_path = os.path.join(image_dir, output_file)
-        with open(output_path, 'w') as f:
-            f.write(generated_text)
-
-        print(f"Generated prompt for {image_file} saved as {output_file}")
+    # Save the description to a text file with the same base name
+    base_name = os.path.splitext(image_file)[0]
+    output_file = os.path.join(output_dir, f"{base_name}.txt")
+    with open(output_file, 'w') as f:
+        f.write(generated_text.strip())
+    logging.info(f"Saved description to {output_file}")
