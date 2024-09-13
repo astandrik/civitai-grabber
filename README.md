@@ -34,7 +34,7 @@ This Python script allows users to download images and associated prompts from t
    pip install requests argparse
    ```
 
-3. **(Optiona) GUI**
+3. **(Optional) GUI**
     To install tinker that is used for interface 
 
     ### Installing Tkinter on Different Platforms
