@@ -1,6 +1,3 @@
-Here is an updated `README.md` that reflects the changes in your code, including the usage of command-line arguments:
-
-```markdown
 # CivitAI Image and Prompt Downloader
 
 This Python script downloads images and their associated prompts from the CivitAI API for a specified model. It fetches images and saves both the images and prompts locally.
@@ -76,6 +73,3 @@ The script will:
 
 ## License
 This project is licensed under the MIT License.
-```
-
-This updated `README.md` includes instructions on how to run the script with the new argument parsing functionality, making it easier for users to provide their API key and model ID at runtime.
